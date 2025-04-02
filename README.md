@@ -50,10 +50,10 @@ Ce projet vise à anticiper les risques d'inondation à l'échelle européenne e
 
 ### 🏆 Meilleur Modèle : XGBoost
 **Performances Clés** :
-Train score (f1_macro): 1.0
-Accuracy: 0.9841389728096677
-Macro F1 Score: 0.9318149621216436
-Micro F1 Score: 0.9841389728096677
+- Train score (f1_macro): 1.0
+- Accuracy: 0.9841389728096677
+- Macro F1 Score: 0.9318149621216436
+- Micro F1 Score: 0.9841389728096677
 ### Matrice de Confusion :
 ```python
  [[  28    0    6    0]  # Côtière
@@ -78,10 +78,10 @@ Le modèle XGBoost démontre les meilleures performances globales avec 98.14% d'
 
 ### 🏆 Meilleur Modèle : XGBoost
 **Performances Clés** :
-Train score: 0.992356721669623
-Accuracy: 0.9876455611669936
-Macro F1 Score: 0.9771949450269299
-Micro F1 Score: 0.9876455611669936
+- Train score: 0.992356721669623
+- Accuracy: 0.9876455611669936
+- Macro F1 Score: 0.9771949450269299
+- Micro F1 Score: 0.9876455611669936
 ### Matrice de Confusion :
 ```python
 [[19941    46]  # pas d'inondation
