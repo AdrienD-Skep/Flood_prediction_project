@@ -1,5 +1,5 @@
 # 🌊 Prévision des Risques d'Inondation
-**Autheur** : Adrien DOUCET 
+**Autheur** : [Adrien DOUCET](https://github.com/AdrienD-Skep)
 **Application** : 🔗 [Lien Hugging Face](https://huggingface.co/spaces/AdrienD-Skep/Flood-prediction) 
 
 ## 🌍 Contexte
