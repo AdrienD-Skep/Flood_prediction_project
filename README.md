@@ -1,6 +1,6 @@
 # 🌊 Prévision des Risques d'Inondation
-**Autheur** : [Adrien DOUCET]  
-**Application** : [🔗 Lien Hugging Face](https://huggingface.co/spaces/AdrienD-Skep/Flood-prediction) 
+**Autheur** : Adrien DOUCET 
+**Application** : 🔗 [Lien Hugging Face](https://huggingface.co/spaces/AdrienD-Skep/Flood-prediction) 
 
 ## 🌍 Contexte
 Ce projet vise à anticiper les risques d'inondation à l'échelle européenne en combinant données géospatiales et modèles prédictifs. Face à l'augmentation des événements climatiques extrêmes, cette solution intègre des données hydrologiques, topographiques et météorologiques pour une analyse multi-échelles.
