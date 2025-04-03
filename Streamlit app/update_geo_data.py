@@ -265,6 +265,8 @@ def update_geo_data(gdf):
         time_condition = (gdf['last_update'] < one_min_ago).all()
         while not time_condition :
             time.sleep(65)
+            now = datetime.now()
+            one_min_ago = now - timedelta(minutes=1)
             time_condition = (gdf['last_update'] < one_min_ago).all()
             
 
