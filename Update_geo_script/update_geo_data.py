@@ -1,3 +1,4 @@
+print("Update started")
 import geopandas as gpd
 import pandas as pd
 import numpy as np
@@ -11,7 +12,7 @@ import time
 import joblib
 import json
 
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi, hf_hub_download
 
 import os
 
@@ -245,79 +246,89 @@ def update_gdf(row , df):
         row[f"flood_proba_{date_id}"] = df_location[(df_location["date_id"] == date_id)]["flood_proba"].iloc[0]
     return row
 
-def update_geo_data(gdf):
-    CHUNK_SIZE = 100
-    TOTAL_ROWS = len(gdf)
-
-    predict_flood_model = joblib.load("models/model_XGBC_predict_flood.pkl")
-    predict_type_model = joblib.load("models/model_XGBC_flood_type.pkl")
-    for start_idx in range(0, TOTAL_ROWS, CHUNK_SIZE):
-        end_idx = min(start_idx + CHUNK_SIZE, TOTAL_ROWS)
-        chunk = gdf.iloc[start_idx:end_idx].copy()
-        
-        # Get current time once per chunk to ensure consistency
-        now = datetime.now()
-        end_date = now + delta_7_days
-        one_min_ago = now - timedelta(minutes=1)
-        
-        # Check conditions
-        date_condition = (chunk['last_update'].dt.date != now.date()).any()
-        time_condition = (gdf['last_update'] < one_min_ago).all()
-        while not time_condition :
-            time.sleep(65)
-            now = datetime.now()
-            one_min_ago = now - timedelta(minutes=1)
-            time_condition = (gdf['last_update'] < one_min_ago).all()
-            
 
 
-        if date_condition:
-            try:
-                lat = chunk["representative_point_lat"].tolist()
-                lon = chunk["representative_point_lon"].tolist()
-                sea_lat = chunk["Sea latitude"].tolist()
-                sea_lon = chunk["Sea longitude"].tolist()
-                sea_distance = chunk["Sea distance"].tolist()
 
-                weather_data = Get_previous_month_weather(lat,lon, end_date)
-                soil_moisture_data = Get_soil_moisture(lat, lon, end_date)
-                river_data = get_river_discharge(lat, lon, end_date)
-                marine_weather_data = Get_marine_weather(lat, lon, sea_lat, sea_lon, sea_distance, end_date)
-                weather_df = pd.concat(weather_data)
-                soil_moisture_df = pd.concat(soil_moisture_data)
-                river_df = pd.concat(river_data)
-                marine_df = pd.concat(marine_weather_data)
-                complete_df = pd.merge(weather_df, soil_moisture_df,on=["date", "lat", "lon", "date_id"])
-                complete_df = pd.merge(complete_df, river_df,on=["date", "lat", "lon", "date_id"])
-                complete_df = pd.merge(complete_df, marine_df,on=["date", "lat", "lon", "date_id"])
-                complete_df["month"] = complete_df['date'].dt.month
+geojson_path = hf_hub_download(
+        repo_id="AdrienD-Skep/geo_flood_data",  # Repository name
+        filename="europe_admin.geojson",    # File name in the repository
+        repo_type="dataset",                # Type of repository
+        token=hf_token,                        
+    )
+gdf = gpd.read_file(geojson_path)
+CHUNK_SIZE = 100
+TOTAL_ROWS = len(gdf)
 
-                ordered_features = predict_flood_model.feature_names_in_
-                X = complete_df[ordered_features]
-                predicted_flood_proba = predict_flood_model.predict_proba(X)
-                predicted_type = predict_type_model.predict(X)
-
-                complete_df["flood_proba"] = np.round(predicted_flood_proba[:,1] * 100)
-                complete_df["flood_type"] = predicted_type
-
-                gdf.loc[chunk.index,:] = gdf.loc[chunk.index,:].apply(lambda x : update_gdf(x,complete_df), axis=1)
-                gdf.loc[chunk.index, 'last_update'] = now
-                
-                print(f"Processed rows {start_idx}-{end_idx-1} at {now}")
-
-                gdf.to_file("europe_admin.geojson", driver="GeoJSON")
-                api = HfApi(token=hf_token)
-                api.upload_file(
-                    path_or_fileobj="europe_admin.geojson",  # Path to the local file
-                    path_in_repo="europe_admin.geojson",     # Path in the repository
-                    repo_id="AdrienD-Skep/geo_flood_data",       # Repository name
-                    repo_type="dataset",                     # Type of repository
-                )
-                
-            except Exception as e:
-                print(f"Error processing chunk {start_idx}-{end_idx-1}: {str(e)}")
-                time.sleep(65)
-        else:
-            print(f"Skipping chunk {start_idx}-{end_idx-1} - already up to date")
+predict_flood_model = joblib.load("models/model_XGBC_predict_flood.pkl")
+predict_type_model = joblib.load("models/model_XGBC_flood_type.pkl")
+for start_idx in range(0, TOTAL_ROWS, CHUNK_SIZE):
+    end_idx = min(start_idx + CHUNK_SIZE, TOTAL_ROWS)
+    chunk = gdf.iloc[start_idx:end_idx].copy()
     
-    return json.loads(gdf.to_json())
+    # Get current time once per chunk to ensure consistency
+    now = datetime.now()
+    end_date = now + delta_7_days
+    one_min_ago = now - timedelta(minutes=1)
+    
+    # Check conditions
+    date_condition = (chunk['last_update'].dt.date != now.date()).any()
+    time_condition = (gdf['last_update'] < one_min_ago).all()
+    while not time_condition :
+        time.sleep(65)
+        now = datetime.now()
+        one_min_ago = now - timedelta(minutes=1)
+        time_condition = (gdf['last_update'] < one_min_ago).all()
+        
+
+
+    if date_condition:
+        try:
+            lat = chunk["representative_point_lat"].tolist()
+            lon = chunk["representative_point_lon"].tolist()
+            sea_lat = chunk["Sea latitude"].tolist()
+            sea_lon = chunk["Sea longitude"].tolist()
+            sea_distance = chunk["Sea distance"].tolist()
+
+            weather_data = Get_previous_month_weather(lat,lon, end_date)
+            soil_moisture_data = Get_soil_moisture(lat, lon, end_date)
+            river_data = get_river_discharge(lat, lon, end_date)
+            marine_weather_data = Get_marine_weather(lat, lon, sea_lat, sea_lon, sea_distance, end_date)
+            weather_df = pd.concat(weather_data)
+            soil_moisture_df = pd.concat(soil_moisture_data)
+            river_df = pd.concat(river_data)
+            marine_df = pd.concat(marine_weather_data)
+            complete_df = pd.merge(weather_df, soil_moisture_df,on=["date", "lat", "lon", "date_id"])
+            complete_df = pd.merge(complete_df, river_df,on=["date", "lat", "lon", "date_id"])
+            complete_df = pd.merge(complete_df, marine_df,on=["date", "lat", "lon", "date_id"])
+            complete_df["month"] = complete_df['date'].dt.month
+
+            ordered_features = predict_flood_model.feature_names_in_
+            X = complete_df[ordered_features]
+            predicted_flood_proba = predict_flood_model.predict_proba(X)
+            predicted_type = predict_type_model.predict(X)
+
+            complete_df["flood_proba"] = np.round(predicted_flood_proba[:,1] * 100)
+            complete_df["flood_type"] = predicted_type
+
+            gdf.loc[chunk.index,:] = gdf.loc[chunk.index,:].apply(lambda x : update_gdf(x,complete_df), axis=1)
+            gdf.loc[chunk.index, 'last_update'] = now
+            
+            print(f"Processed rows {start_idx}-{end_idx-1} at {now}")
+
+            gdf.to_file("europe_admin.geojson", driver="GeoJSON")
+            api = HfApi(token=hf_token)
+            api.upload_file(
+                path_or_fileobj="europe_admin.geojson",  # Path to the local file
+                path_in_repo="europe_admin.geojson",     # Path in the repository
+                repo_id="AdrienD-Skep/geo_flood_data",       # Repository name
+                repo_type="dataset",                     # Type of repository
+            )
+            
+        except Exception as e:
+            print(f"Error processing chunk {start_idx}-{end_idx-1}: {str(e)}")
+            time.sleep(65)
+    else:
+        print(f"Skipping chunk {start_idx}-{end_idx-1} - already up to date")
+
+
+print("Update finished")
