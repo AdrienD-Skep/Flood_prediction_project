@@ -7,3 +7,5 @@ retry-requests
 joblib
 huggingface-hub
 shapely
+scikit-learn
+xgboost

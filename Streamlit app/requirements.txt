@@ -7,5 +7,3 @@ pandas
 numpy
 huggingface-hub
 shapely
-scikit-learn
-xgboost
