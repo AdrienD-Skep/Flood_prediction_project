@@ -1,10 +1,10 @@
-streamlit
-folium
-streamlit-folium
-plotly
 geopandas
 pandas
 numpy
+openmeteo-requests
+requests-cache
+retry-requests
+joblib
 huggingface-hub
 shapely
 scikit-learn
