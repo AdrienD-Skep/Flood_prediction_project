@@ -1,11 +1,15 @@
+streamlit
+folium
+streamlit-folium
+plotly
 geopandas
 pandas
 numpy
-openmeteo-requests
-requests-cache
-retry-requests
-joblib
 huggingface-hub
 shapely
 scikit-learn
+<<<<<<< HEAD
 xgboost
+=======
+xgboost
+>>>>>>> 02548d350167bda7791a24eed3c33b9b7e31699d
