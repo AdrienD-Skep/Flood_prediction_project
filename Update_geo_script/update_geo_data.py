@@ -245,14 +245,22 @@ def update_gdf(row , df):
         row[f"flood_proba_{date_id}"] = df_location[(df_location["date_id"] == date_id)]["flood_proba"].iloc[0]
     return row
 
+
+def log(message):
+        print(message, flush=True)
+
 def update_geo_data(gdf):
-    print("updating geo file...")
+    log("Starting geo data update process...")
     CHUNK_SIZE = 100
     TOTAL_ROWS = len(gdf)
+    start_time = time.time()
+    api = HfApi(token=hf_token)
 
     predict_flood_model = joblib.load("Update_geo_script/models/model_XGBC_predict_flood.pkl")
     predict_type_model = joblib.load("Update_geo_script/models/model_XGBC_flood_type.pkl")
+    log("Models loaded successfully")
     for start_idx in range(0, TOTAL_ROWS, CHUNK_SIZE):
+        chunk_start_time = time.time()
         end_idx = min(start_idx + CHUNK_SIZE, TOTAL_ROWS)
         chunk = gdf.iloc[start_idx:end_idx].copy()
         
@@ -260,20 +268,23 @@ def update_geo_data(gdf):
         now = datetime.now()
         end_date = now + delta_7_days
         one_min_ago = now - timedelta(minutes=1)
-        
+
         # Check conditions
         date_condition = (chunk['last_update'].dt.date != now.date()).any()
         time_condition = (gdf['last_update'] < one_min_ago).all()
-        while not time_condition :
-            time.sleep(65)
-            now = datetime.now()
-            one_min_ago = now - timedelta(minutes=1)
-            time_condition = (gdf['last_update'] < one_min_ago).all()
-            
-
+        if not time_condition :
+            log(f"Waiting for time condition (last update > 1 min ago) for chunk {start_idx}-{end_idx-1}...")
+            while not time_condition :
+                time.sleep(65)
+                now = datetime.now()
+                one_min_ago = now - timedelta(minutes=1)
+                time_condition = (gdf['last_update'] < one_min_ago).all()
+            log(f"Time condition met after waiting, proceeding with chunk {start_idx}-{end_idx-1}")
 
         if date_condition:
             try:
+                log(f"Processing chunk {start_idx}-{end_idx-1} ({len(chunk)} rows)...")
+
                 lat = chunk["representative_point_lat"].tolist()
                 lon = chunk["representative_point_lon"].tolist()
                 sea_lat = chunk["Sea latitude"].tolist()
@@ -304,30 +315,40 @@ def update_geo_data(gdf):
                 gdf.loc[chunk.index,:] = gdf.loc[chunk.index,:].apply(lambda x : update_gdf(x,complete_df), axis=1)
                 gdf.loc[chunk.index, 'last_update'] = now
                 
-                print(f"Processed rows {start_idx}-{end_idx-1} at {now}")
-
+                log(f"✅ Successfully processed rows {start_idx}-{end_idx-1} at {now}")
+                log(f"  Chunk processing time: {time.time() - chunk_start_time:.2f} seconds")
+                upload_start = time.time()
                 gdf.to_file("europe_admin.geojson", driver="GeoJSON")
-                api = HfApi(token=hf_token)
+                
                 api.upload_file(
                     path_or_fileobj="europe_admin.geojson",  # Path to the local file
                     path_in_repo="europe_admin.geojson",     # Path in the repository
                     repo_id="AdrienD-Skep/geo_flood_data",       # Repository name
                     repo_type="dataset",                     # Type of repository
                 )
-                
+                log(f"  Upload completed in {time.time() - upload_start:.2f} seconds")
             except Exception as e:
-                print(f"Error processing chunk {start_idx}-{end_idx-1}: {str(e)}")
+                log(f"❌ ERROR processing chunk {start_idx}-{end_idx-1}: {str(e)}")
+                log("Waiting 65 seconds...")
                 time.sleep(65)
         else:
-            print(f"Skipping chunk {start_idx}-{end_idx-1} - already up to date")
-    print("finished updating geofile")
+            log(f"⏭️ Skipping chunk {start_idx}-{end_idx-1} - already up to date")
+    total_time = time.time() - start_time
+    log(f"🎉 Finished updating geo file. Total time: {total_time:.2f} seconds")
+    log(f"Average time per chunk: {total_time/(TOTAL_ROWS/CHUNK_SIZE):.2f} seconds")
 
 if __name__ == "__main__":
+    log("Starting script...")
+    log("Downloading geo file from Hugging Face Hub...")
+    download_start = time.time()
     geojson_path = hf_hub_download(
         repo_id="AdrienD-Skep/geo_flood_data",  # Repository name
         filename="europe_admin.geojson",    # File name in the repository
         repo_type="dataset",                # Type of repository
         token=hf_token,                        
     )
+    log(f"Download completed in {time.time() - download_start:.2f} seconds")
+
+    log("Loading GeoDataFrame...")
     gdf = gpd.read_file(geojson_path)
     update_geo_data(gdf)
