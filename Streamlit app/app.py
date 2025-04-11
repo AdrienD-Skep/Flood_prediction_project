@@ -14,15 +14,8 @@ hf_token = os.getenv("HF_TOKEN")
 st.set_page_config(layout="wide")
 st.title("Interactive Flood Risk Map")
 
-def update_data(geojson_data):
-    from update_geo_data import update_geo_data
-    if update_geo_data(geojson_data) :
-        st.success("Data updated successfully!")
-    else :
-        st.error("Failed to update data!")
-
 @st.cache_data
-def load_geojson(current_date):
+def load_geojson():
 
     geojson_path = hf_hub_download(
         repo_id="AdrienD-Skep/geo_flood_data",  # Repository name
@@ -32,18 +25,15 @@ def load_geojson(current_date):
     )
     gdf = gpd.read_file(geojson_path)
     gdf["last_update"] = pd.to_datetime(gdf["last_update"])
-    if (gdf['last_update'].dt.date != current_date).any():
-        with st.spinner("Updating data... Please wait."):
-            gdf = update_data(gdf)
-
     return gdf
 
 if "selected_region_data" not in st.session_state:
     st.session_state["selected_region_data"] = None
-# Get today's date in GMT+0 (UTC)
-today = datetime.now(timezone.utc).date()
-gdf = load_geojson(today)
-gdf["last_update"] = gdf["last_update"].dt.strftime('%Y-%m-%d')
+
+gdf = load_geojson()
+# last_update = gdf["last_update"].iloc[0]
+# gdf["last_update"] = gdf["last_update"].dt.strftime('%Y-%m-%d')
+
 def create_folium_map(option):
     m = folium.Map(location=[54.5260, 15.2551], zoom_start=3)
 
@@ -203,7 +193,7 @@ with st.sidebar:
     if st.session_state.selected_region_data:
         region_name = st.session_state.selected_region_data["NAME_2"] 
         st.title(f"{region_name}")
-        df = pd.DataFrame({"date" : [today + timedelta(days=i) for i in range(8)], "flood_proba" : [st.session_state.selected_region_data[f"flood_proba_{i}"]  for i in range(8)]})
+        df = pd.DataFrame({"date" : [st.session_state.selected_region_data["last_update"] + timedelta(days=i) for i in range(8)], "flood_proba" : [st.session_state.selected_region_data[f"flood_proba_{i}"]  for i in range(8)]})
         fig = go.Figure()
 
         fig.add_trace(go.Scatter(
