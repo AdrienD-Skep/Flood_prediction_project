@@ -250,8 +250,8 @@ def update_geo_data(gdf):
     CHUNK_SIZE = 100
     TOTAL_ROWS = len(gdf)
 
-    predict_flood_model = joblib.load("models/model_XGBC_predict_flood.pkl")
-    predict_type_model = joblib.load("models/model_XGBC_flood_type.pkl")
+    predict_flood_model = joblib.load("Update_geo_script/models/model_XGBC_predict_flood.pkl")
+    predict_type_model = joblib.load("Update_geo_script/models/model_XGBC_flood_type.pkl")
     for start_idx in range(0, TOTAL_ROWS, CHUNK_SIZE):
         end_idx = min(start_idx + CHUNK_SIZE, TOTAL_ROWS)
         chunk = gdf.iloc[start_idx:end_idx].copy()
