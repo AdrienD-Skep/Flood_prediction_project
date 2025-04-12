@@ -3,49 +3,60 @@
 
 **Application** : 🔗 [Hugging Face](https://huggingface.co/spaces/AdrienD-Skep/Flood-prediction) 
 
-## 🌐 Vision du Projet
+## 📑 Sommaire
+- [🔍 Vision du Projet](#-vision-du-projet)
+- [🎯 Objectifs](#-objectifs)
+- [🗃 Structure du Projet](#-structure-du-projet)
+- [📊 Performances des Modèles](#-analyse-comparative-des-performances-des-modèles)
+- [📈 Exemple de Résultat](#-exemple-de-résultat)
+- [📚 Sources](#-sources-de-données--références)
+
+## 🔍 Vision du Projet
 Ce projet vise à développer une solution intelligente de surveillance et de prévision des inondations à l’échelle européenne.
 En croisant des données géospatiales, météorologiques et hydrologiques, il permet d’identifier en temps réel les zones à risque. Grâce à des modèles de machine learning, cette approche permet d’anticiper les inondations sur 7 jours, tout en classifiant leur nature (fluviale, côtière ou éclair) avec une granularité régionale.
 Une réponse innovante face à l’intensification des aléas climatiques.
 
 ## 🎯 Objectifs  
-- Estimer le risque d'inondation pour les 7 jours à veniren Europe
+- Estimer le risque d'inondation pour les 7 jours à venir en Europe
 - Classifier le type d'inondation (fluviale/côtière/éclair)  
 - Cartographier dynamiquement les zones à risque
 
+
+## 🗃 Structure du Projet
 📁 **Notebooks/**  
 *Jupyter Notebooks d'exploration*  
 - `1 Geo coding` : Géocodage des régions et identification des côtes les plus proches  
-  *(Localisation des régions via leurs noms + calcul de la distance côtière avec S3_regions_codes_and_names_v2021)*  
+  *(Localisation des régions via leurs noms + calcul de la distance côtière)*  
 - `2 flood train data gathering` : Collecte des données d'entraînement  
   *(Utilisation de l'API Open-Meteo et des données GESLA pour construire le dataset d'entraînement)*  
 - `3 flood data analysis` : Analyse exploratoire et visualisation  
-  *(EDA - Analyse des tendances historiques et corrélations spatiales)*  
+  *(EDA - Analyse des tendances historiques et corrélations)*  
 - `4 flood predict ml` : Modélisation prédictive  
   *(Entraînement de modèles ML pour prédire type/probabilité d'inondation)*  
 - `5 region geometry` : Préparation des données géospatiales  
   *(Génération des polygones régionaux + calculs de proximité côtière avec GeoPandas/Shapely)*  
 - `6 app test` : Validation de l'application  
   *(Tests d'intégration des prédictions dans l'interface Streamlit + debug)*
-  
+
 📁 **Streamlit app/**  
-*Application Streamlit* 
-- `app.py` : Interface utilisateur interactive principale  
-  *(Cartographie dynamique + affichage des prédictions en temps réel)*  
-- `update_geo_data.py` : Mise à jour automatisée des données géospatiales  
-  *(Récupération live via API Open-Meteo)*  
+*Application Streamlit*  
+- `app.py` : Interface principale de visualisation  
+  *(Affichage interactif des prédictions sur une carte en temps réel)*  
+- `Dockerfile` : Conteneurisation de l’application  
+  *(Initialisation de l’image Docker pour déployer l’application Streamlit)*  
+- `requirement.txt` : Liste des dépendances nécessaires à l’application  
+
 📁 **Update_geo_script/**  
-*Logique de workflow pour mettre à jour les données de l’application*
+*Workflow de mise à jour automatisée des données géospatiales*  
 - 📁 `models`  
   - `model_XGBC_flood_type.pkl` : Modèle de prédiction du type d’inondation  
-  - `model_XGBC_predict_flood.pkl` : Modèle de prédiction des probabilités d’inondation
-- `requirement.txt` : Liste des dépendances nécessaires au workflow  
-- `update_geo_data.py` : Script principal du workflow
-📄 **README.md**  
-*Documentation du projet*  
+  - `model_XGBC_predict_flood.pkl` : Modèle de prédiction des probabilités d’inondation  
+- `requirement.txt` : Liste des dépendances nécessaires au script  
+- `update_geo_data.py` : Script de collecte et mise à jour des données  
+  *(Appels aux APIs, prédictions via modèles ML, sauvegarde des données)* 
 
-
-## 📊 Analyse Comparative des Performances des Modèles (Prédiction du type d'inondations)
+## 📊 Analyse Comparative des Performances des Modèles
+## Prédiction du type d'inondations
 
 ### 📋 Tableau Synthétique
 | Modèle                | Accuracy | Macro F1 | Micro F1 | Temps d'entrainement | Adapté au Déploiement |
@@ -78,7 +89,7 @@ Performance après une optimisation par bayes search pour ajuster les hyperparam
 Le modèle XGBoost démontre les meilleures performances globales avec 98.64% d'accuracy et un F1-macro de 0.945. Le recall pour la détection des inondations éclair (classe 1) reste perfectible.
 
 
-## 📊 Analyse Comparative des Performances des Modèles (prédiction des risques d'inondation)
+## Prédiction des risques d'inondation
 
 ### 📋 Tableau Synthétique
 | Modèle                | Accuracy | Macro F1 | Micro F1 | Temps d'entrainement | Adapté au Déploiement |
@@ -111,6 +122,10 @@ Performance après une optimisation par bayes search pour ajuster les hyperparam
 ```
 ## 📈 Conclusion
 Le modèle Random Forest offrait de meilleures performances sans optimisation des hyperparamètres, mais XGBoost le surpasse après une légère recherche bayésienne. De plus, étant beaucoup plus rapide, XGBoost est mieux adapté pour effectuer une recherche bayésienne complète.
+
+## 🔍 Exemple de Résultat
+Voici un aperçu de l'application :
+![aperçu de l'app](assets/Streamlit_app.jpeg)
 
 
 ## 📚 Sources de Données & Références
