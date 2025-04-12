@@ -26,54 +26,41 @@ delta_1_day = timedelta(days=1)
 
 def Create_df(data, start_date, end_date, day_time=24):
     def safe_agg(sliced_data, agg_func):
-        # Handle all-NaN slices gracefully
         if sliced_data.size == 0 or np.isnan(sliced_data).all():
             return np.nan
         return agg_func(sliced_data)
     
-    result_df = pd.DataFrame()
+    rows = []
     day = start_date
     i = 0
     while day <= end_date:
-        # Define offsets in hours
         start_30 = i * day_time
-        end = start_30 + 31 * day_time  # 31 because open meteo end date is inclusive
-        start_5 = end - 5 * day_time    # Last 5 days of the 30-day window
-        start_1 = end - 1 * day_time    # Last 1 day of the 30-day window
+        end = start_30 + 31 * day_time  # 31 because open-meteo end date is inclusive
+        start_5 = end - 5 * day_time
+        start_1 = end - 1 * day_time
         
-        slice_30 = slice(start_30, end)
-        slice_5 = slice(start_5, end)
-        slice_1 = slice(start_1, end)
-
         new_row = {
-            # Median calculations
-            **{f"median_{key}_30": safe_agg(value[slice_30], np.nanmedian)
+            **{f"median_{key}_30": safe_agg(value[slice(start_30, end)], np.nanmedian)
                for key, value in data.items()},
-            
-            # Mean calculations
             **{f"mean_{key}_{suffix}": safe_agg(value[slice_], np.nanmean)
-               for suffix, slice_ in [("30", slice_30), ("5", slice_5), ("1", slice_1)]
+               for suffix, slice_ in [("30", slice(start_30, end)), 
+                                        ("5", slice(start_5, end)), 
+                                        ("1", slice(start_1, end))]
                for key, value in data.items()},
-            
-            # Max calculations
-            **{f"max_{key}_1": safe_agg(value[slice_1], np.nanmax)
+            **{f"max_{key}_1": safe_agg(value[slice(start_1, end)], np.nanmax)
                for key, value in data.items()}
         }
-        
-        # Add metadata
         new_row.update({
             "date": day,
             "date_id": i
         })
-
-        # Append to results
-        result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
-        
-        # Increment
+        rows.append(new_row)
         day += delta_1_day
         i += 1
         
+    result_df = pd.DataFrame(rows)
     return result_df
+
 
 
 def Get_previous_month_weather(lat, lon, end_date) :
@@ -284,15 +271,7 @@ def update_geo_data(gdf):
 
         # Check conditions
         date_condition = (chunk['last_update'].dt.date != now.date()).any()
-        time_condition = (gdf['last_update'] < one_min_ago).all()
-        if not time_condition :
-            log(f"Waiting for time condition (last update > 1 min ago) for chunk {start_idx}-{end_idx-1}...")
-            while not time_condition :
-                time.sleep(65)
-                now = datetime.now()
-                one_min_ago = now - timedelta(minutes=1)
-                time_condition = (gdf['last_update'] < one_min_ago).all()
-            log(f"Time condition met after waiting, proceeding with chunk {start_idx}-{end_idx-1}")
+
 
         if date_condition:
             try:
@@ -339,7 +318,9 @@ def update_geo_data(gdf):
                     repo_id="AdrienD-Skep/geo_flood_data",       # Repository name
                     repo_type="dataset",                     # Type of repository
                 )
-                log(f"  Upload completed in {time.time() - upload_start:.2f} seconds")
+                log(f"✅ Upload completed in {time.time() - upload_start:.2f} seconds")
+                log("Waiting 65 seconds...")
+                time.sleep(65)
             except Exception as e:
                 log(f"❌ ERROR processing chunk {start_idx}-{end_idx-1}: {str(e)}")
                 log("Waiting 65 seconds...")
